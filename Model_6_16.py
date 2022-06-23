@@ -1,5 +1,4 @@
 import os
-from random import sample
 import sys
 sys.path.append("C:/Users/CKIEFER/GreenSteel/HDRI-EAF-Technoeconomic-model")
 import Enthalpy_functions
@@ -17,16 +16,16 @@ import numpy_financial as npf #for calculating the NPV and IRR
 
 #molecular weights of the materials fed into DRI from national institute of standards and technology
 #Iron and impurities
-mol_weight_fe=      55.845  #grams
-mol_weight_fe203=   159.69  #grams
-mol_weight_sio2=    60.084  #grams
-mol_weight_al2o3=   101.961 #grams
-mol_weight_feo=     71.84   #grams
-mol_weight_H2=      2.01588 #grams
-mol_weight_H2O=     18.0153 #grams
-mol_weight_cao=     56.08   #grams
-mol_weight_mgo=     40.30   #grams
-mol_weight_C=       12.011  #grams
+mol_weight_fe=      55.845  #grams/mol
+mol_weight_fe203=   159.69  #grams/mol
+mol_weight_sio2=    60.084  #grams/mol
+mol_weight_al2o3=   101.961 #grams/mol
+mol_weight_feo=     71.84   #grams/mol
+mol_weight_H2=      2.01588 #grams/mol
+mol_weight_H2O=     18.0153 #grams/mol
+mol_weight_cao=     56.08   #grams/mol
+mol_weight_mgo=     40.30   #grams/mol
+mol_weight_C=       12.011  #grams/mol
 
 
 
@@ -198,7 +197,7 @@ m2_fe=(m1-(m1_sio2+m1_al2o3+m2_feo))*Fe_O_ratio     #mass metallic iron out of D
 
 print("Raw Iron Ore input in (Kg/tls): ",np.around(m1,2))
 print("Metallic Stream at SF Outlet in (kg/tls): ",np.around(m2_fe,2))
-print("Molten Metal at EAF Outlet in (kg/tls): ",np.around(m3,2))
+print("Molten Metal at EAF Outlet with no reduction in EAF (kg/tls): ",np.around(m3,2))
 
 
 
@@ -224,6 +223,7 @@ h2_prod_hr=h2_prod_yr/operating_hours  #h2 produced per hour
 
 
 ##Calculations of amount of produced h2 as excess h2 from DRI will be recycled into DRI
+#steel produced per hour
 
 h2_per_ton_actual=m4_stoich*lambda_h2       #mass of hydrogen inputted in Kg per tonne steel
 m4=h2_per_ton_actual                        #mass of hydrogen inputted in Kg !!unsure why original author put this in twice, returns same value
@@ -356,6 +356,8 @@ el_heater=(Q_heater/eta_el_heater)  #electricity need at heater
 #print("Electricity of Heater needed in kwh :", el_heater)
 
 
+#####Not necessary fo r code
+
 ##EAF Carbon input
 m6=10 #kg
 m7=50 #kg
@@ -373,6 +375,9 @@ c_remaining=m10-c_required
 # reaction C+0.5 O2---- CO + 9.10 kWh/kg of carbon
 H_co=c_remaining*9.10 
 
+m3_actual=m2_feo_reduced+m3
+print('Extra Molten Metal through reduction in EAF (Kg/tls): ',np.around(m2_feo_reduced,2))
+print('Actual tonnes liquid steel with reduction in EAF: ',np.around(m3_actual/1000,2))
 
 def electrolyzer_npv(tax_rate,interest_rate,electricity_cost,iron_ore_cost,emission_cost,carbon_steel_price,O2_price,el_spec,h2_investment_2020):
     ## Electrolyzer : Mass and Enerfy flow
@@ -392,12 +397,13 @@ def electrolyzer_npv(tax_rate,interest_rate,electricity_cost,iron_ore_cost,emiss
     Hfe_melting=247 #kJ/kg
     Hfe_T2=fe_enthalpy_1(T2)   #Enthalpy of DRI entering Eaf
     Hfe_T3=fe_enthalpy_2(T3)    #Enthalpy steel exiting EAF
-    h3=((Hfe_T2+Hfe_T3)*m2_fe*1000)+(m2_fe*Hfe_melting)  #Total Enthalpy at output
+    h3=((Hfe_T3-Hfe_T2)*m2_fe*1000)+(m2_fe*Hfe_melting)  #Total Enthalpy at output
 
     h3_kwh=h3/3600
 
 
-    eta_el=0.6  #heat transfer, cooling losses, waste gas stream taken into consideration
+    eta_el=0.6  #Efficiency of the transformer, arc,
+    #heat transfer, cooling losses, waste gas stream taken into consideration
     # The efficincy is considered lower to account for the loss of energy from the
     #scrap stream, the use of slag formers etc
 
@@ -510,7 +516,7 @@ def electrolyzer_npv(tax_rate,interest_rate,electricity_cost,iron_ore_cost,emiss
     depreciation_yr=total_capital_cost/plant_life
 
     #Revenue  USD/ton
-    O2_produced=m4*8 ##8 because of 2:1 mol ration and 2:16 molecular weight ratio  kg
+    O2_produced=m4*8 ##8 because of 2:1 mol ratio and 2:16 molecular weight ratio  kg
     total_O2_produced=(O2_produced*steel_prod_yr)/1000 #tonnes
 
     O2_revenue=(total_O2_produced*O2_price*O2_sold)
@@ -608,7 +614,7 @@ interest_rate=0.10 #percent
 
 electricity_cost=56.12 #USD/mwh
 iron_ore_cost=90 #USD/ton
-emission_cost=30 #USd per tonne
+emission_cost=30 #USD per tonne
 carbon_steel_price=700 #USD/ton
 
 emission_factor=.413
@@ -626,6 +632,11 @@ baseline_npv=electrolyzer_npv(*baseline)[0]
 #baseline_npv
 
 #print(electricity_cost)
+
+
+def establish_save_output_dict():
+    return
+
 
 variation=np.arange(-20,21,5)
 p=[1+(i/100) for i in variation]
