@@ -32,7 +32,7 @@ def establish_save_output_dict():
     return save_outputs_dict
 
 
-def HRDI_EAF_Model():
+def HDRI_EAF_Model():
     #molecular weights of the materials fed into DRI from national institute of standards and technology
     #Iron and impurities
     mol_weight_fe=      55.845  #grams/mol
@@ -472,7 +472,7 @@ def HRDI_EAF_Model():
         el_capacity_mwel=h2_capacity_MW/electrolyzer_efficiency
         h2_per_year=h2_per_hour_kg*operating_hours
 
-        #print(h2_per_year) #check
+        print('Hydrogen Production per year: ',h2_per_year) #check
         if el_capacity_mwel>=1000:
             el_capacity_gwel=el_capacity_mwel/10**3
             print('Electrolyzer Capacity (GW): ',np.around(el_capacity_gwel,2))
@@ -736,4 +736,4 @@ def HRDI_EAF_Model():
     #            iron_ore_cost,emission_cost,carbon_steel_price,O2_price_n,el_spec,h2_investment_2020_n[i]))
     #          for i in range(len(tax_rate_n))][0]
 
-HRDI_EAF_Model()
+HDRI_EAF_Model()
