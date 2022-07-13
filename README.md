@@ -6,7 +6,7 @@ HAGS provides models for the production of Ammonium and Green Steel using hydrog
 These models are based off papers and codes of Abhinav Bhaskar of the University of Stavanger in Norway
 His repository can be found here:
 https://github.com/abhinavbhaskar/HDRI-EAF-Technoeconomic-model/tree/V1.0
-His
+
 
 HAGS_Testing is raw code to pull many outputs
 
