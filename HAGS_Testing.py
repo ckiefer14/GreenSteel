@@ -3,6 +3,8 @@ import sys
 sys.path.append("C:/Users/CKIEFER/GreenSteel/HDRI-EAF-Technoeconomic-model")
 sys.path.append("C:/Users/CKIEFER/NREL/HOPP/examples")
 import Enthalpy_functions
+from NREL.HOPP.examples.H2_Analysis import underground_pipe_storage
+from NREL.HOPP.examples.H2_Analysis import compressor
 from NREL.HOPP.examples.H2_Analysis import h2_main
 import pandas as pd 
 import matplotlib.pyplot as plt
@@ -32,7 +34,12 @@ def establish_save_output_dict():
     save_outputs_dict['Yearly Steel Production'] = list()
     save_outputs_dict['Total Revenue'] = list()
     save_outputs_dict['Total Costs'] = list()
-    save_outputs_dict['Total Incomce'] = list()
+    save_outputs_dict['Total Income'] = list()
+    save_outputs_dict['Levelized Cost of Steel'] = list()
+    save_outputs_dict['Levelized Cost of Hydrogen'] = list()
+    save_outputs_dict['Levelized Cost of Oxygen'] = list()
+    save_outputs_dict['Hydrogen from Electrolyzer to Storage'] = list()
+
 
     return save_outputs_dict
 
@@ -178,7 +185,68 @@ def HDRI_EAF_Model(eta_el,h2_prod_yr,plant_life,tax_rate,interest_rate,electrici
         H_t=((A*t)+(B*(t**2)/2)+(C*(t**3)/3)+(D*(t**4)/4)-(E/t)+(F-H))/mol_weight_cao
         return H_t
 
+    h2_storage_underground_pipe=False
+    el_comp=0
+    pipe_storage_capex=0
+    pipe_storage_opex=0
+    compressor_capex=0
+    compressor_opex=0
 
+    if h2_storage_underground_pipe:
+        h2_prod_yr_limit=7728798
+        in_dict = dict()
+        out_dict = dict()
+        in_dict['H2_storage_kg'] = 1000
+        in_dict['storage_duration_hrs'] = 4
+        in_dict['flow_rate_kg_hr'] = 126        #[kg-H2/hr]
+        in_dict['compressor_output_pressure'] = 100
+
+        test = underground_pipe_storage.Underground_Pipe_Storage(in_dict,out_dict)
+        test.pipe_storage_costs()
+        #print('Pipe Storage Capex [USD]: ',out_dict['pipe_storage_capex'])
+        #print('Pipe Storage Opex [USD]: ',out_dict['pipe_storage_opex'])
+        pipe_storage_capex=out_dict['pipe_storage_capex']
+        pipe_storage_opex=out_dict['pipe_storage_opex']
+        #print('Underground pipe storage opex [MUSD]: ',pipe_storage_opex_MUSD) #Add to Annual Operational costs 
+        #print('Underground pipe storage capex [MUSD]: ',pipe_storage_capex_MUSD) #Add to Capital Costs
+        #print('Underground pipe storage annuals [USD/yr]: ', out_dict['pipe_storage_annuals'])
+
+        
+        
+        h2_to_storage=h2_prod_yr-h2_prod_yr_limit
+        h2_prod_yr=h2_prod_yr_limit
+        print('Hydrogen in Kg to Storage: ',h2_to_storage)
+        operating_pressure= 250 #bar
+
+        ##Compressor
+        in_dict = dict()
+        in_dict['flow_rate_kg_hr'] = 126 #kg/hr
+        in_dict['P_outlet'] = 250   #bar
+        in_dict['compressor_rating_kWe'] = 802  #KWe
+        in_dict['mean_time_between_failure'] = 200  #days   
+        in_dict['total_hydrogen_throughput'] = 5000000  #kg-h2/yr
+        out_dict = dict()
+        
+        test = compressor.Compressor(in_dict, out_dict)
+        test.compressor_power()
+        test.compressor_costs()
+        el_comp=out_dict['comp_energy_per_kg']
+        
+        #print("compressor_power (kW): ", out_dict['compressor_power']) #
+        #print("Compressor capex [USD]: ", out_dict['compressor_capex'])
+        #print("Compressor opex [USD/yr]: ", out_dict['compressor_opex'])
+        #print("Energy per kg h2 (kwh/kgh2): ",out_dict['comp_energy_per_kg'])
+        #print(out_dict['compressor_annuals'])
+
+        compressor_capex=out_dict['compressor_capex']
+        compressor_opex=out_dict['compressor_opex']
+    
+
+
+        
+
+        
+        
 
 
     #Temperatures in System all in Kelvin
@@ -419,6 +487,7 @@ def HDRI_EAF_Model(eta_el,h2_prod_yr,plant_life,tax_rate,interest_rate,electrici
         #elec_spec=50 #kwh/kgh2  #specification of electrolyzer
         water_spec=11   #11 kg of water is required for 1 kg h2 #1kg h2o = 1 liter h2o
 
+        #print(out_dict['comp_energy_per_kg'])
         el_elec=(m4*el_spec)  #Electrolyzer Electricity
         water_total=(m4*water_spec) ##total water in system needed for 1 tls in kg h20/tls
         extra_h2o=(water_total-m13) #total water needed into electrolyzer if h2o is recycled
@@ -447,8 +516,10 @@ def HDRI_EAF_Model(eta_el,h2_prod_yr,plant_life,tax_rate,interest_rate,electrici
         #print ("Electrical energy input in kWh/ton of liquid steel",el_eaf)
 
         #Specific energy consumption of HDRI-EAF system
-
-        EL_total=(el_eaf+el_elec+el_heater) #kwh/tls
+          #kgh2/tls * kwh/kgh2
+        el_comp_tls=el_comp*m4
+        EL_total=(el_eaf+el_elec+el_heater+el_comp_tls) #kwh/tls
+        #print('Electrical Demand for Compressor (kwh/tls): ',el_comp_tls)
         El_total_yr=EL_total*steel_prod_yr #kwh/yr
         EL_total_MWh=EL_total/1000  #Mwh/tls
         EL_total_MWh_yr=EL_total_MWh*steel_prod_yr
@@ -483,7 +554,7 @@ def HDRI_EAF_Model(eta_el,h2_prod_yr,plant_life,tax_rate,interest_rate,electrici
         h2_per_second_kg=(h2_per_hour_kg)/3600
         lhv_h2=120.1 #Mj/kg low heating value
         h2_capacity_MW=h2_per_second_kg*lhv_h2   #MW h2 energy
-        electrolyzer_efficiency=0.67 #MW h2 energy from MW electrical
+        electrolyzer_efficiency=0.75 #MW h2 energy from MW electrical ##Based off Electrolyzer spec
         el_capacity_mwel=h2_capacity_MW/electrolyzer_efficiency #MW electrical energy
         h2_per_year=h2_per_hour_kg*operating_hours #check
         
@@ -505,24 +576,24 @@ def HDRI_EAF_Model(eta_el,h2_prod_yr,plant_life,tax_rate,interest_rate,electrici
         stack_replacement_year=stack_lifetime/operating_hours
         stack_replacement_number=1
         Euro_dollar_conversion=1.18
-        ## 600 USD /KW
+        ## 300 USD /KW
 
-        h2_investment_MW_h2=(h2_investment_2020*Euro_dollar_conversion) #.708 mill USD per MW Electrolyzer
+        h2_investment_MW_h2=(h2_investment_2020) #.300 mill USD per Mw Electrolyzer
 
         electrolyer_cost=h2_investment_MW_h2*h2_capacity_MW #total electrolyzer cost Mill USD
-
+        
         # only the stack is replaced, which is 60% of the total el capital cost 
         # it is assumed that by the time stacks are replaced the cost of electrolyzers would 
         #have fallen to 0.45 Million Euro/MW of H2
         # replacement is considered only once for the plant as its assumed that the lifetime of 
         #next generation stacks would be more than 15 years 
 
-        h2_investment_2030=.45 #.45 mill USD per MW h2
+        h2_investment_2030=.300 #.30 mill USD per MW h2
 
         #0.6 represents 60% of the stack needing to be replaced after lifetime
         percent_stack_replaced=.6
         replacement_cost=electrolyer_cost*percent_stack_replaced*h2_investment_2030*np.round(stack_replacement_number)
-        total_electrolyzer_cost=(electrolyer_cost+replacement_cost) #Mill USD
+        total_electrolyzer_cost=(electrolyer_cost+replacement_cost) #Mill USD over plant lifetime
 
 
         # The value includes installation costs 
@@ -544,9 +615,42 @@ def HDRI_EAF_Model(eta_el,h2_prod_yr,plant_life,tax_rate,interest_rate,electrici
 
 
         ##pressure swing adsorber
-        #accounts fot plant equipment like condenser, heat exhanger, heater
+
+        finishing=True
+        finishing_capex=0
+        finishing_opex=0
+        percent_capex=.03  ###Need to verify this
+        if finishing:
+            billiting=False
+            if billiting:
+                finishing_capex=85 #USD/tonne
+                finishing_opex=finishing_capex*percent_capex  #Placeholders
+            slab_casting=True
+            if slab_casting:
+                finishing_capex=110
+                finishing_opex=finishing_capex*percent_capex
+            Hot_Strip=False
+            if Hot_Strip:
+                finishing_capex=187
+                finishing_opex=finishing_capex*percent_capex
+            Bar_Rolled=False
+            if Bar_Rolled:
+                finishing_capex=165
+                finishing_opex=finishing_capex*percent_capex
+            Rail_mill=False
+            if Rail_mill:
+                finishing_capex=515
+                finishing_opex=finishing_capex*percent_capex
+            Welded_Tube=False
+            if Welded_Tube:
+                finishing_capex=385
+                finishing_opex=finishing_capex*percent_capex
+
+
+
+        #accounts for plant equipment like condenser, heat exhanger, heater
         #million USD
-        total_capital_cost=((electrolyer_cost)+eaf_total_cost+dri_total_cost)*lang_factor #million USD
+        total_capital_cost=(((electrolyer_cost)+eaf_total_cost+dri_total_cost)*lang_factor) + ((pipe_storage_capex+compressor_capex+(finishing_capex*steel_prod_yr))/10**6) #million USD
         
         ##Doesn't include costs of indirect emissons
         total_emission_cost=((EAF_co2+cao_emission+co2_eaf_electrode+pellet_production)*emission_cost*steel_prod_yr)/10**6 #million USD
@@ -560,8 +664,10 @@ def HDRI_EAF_Model(eta_el,h2_prod_yr,plant_life,tax_rate,interest_rate,electrici
         iron_ore_tls=m1/1000    # Converting iron ore required from kg to tonnes
         iron_ore_cost_tls=iron_ore_tls*iron_ore_cost
         electricity_cost_tls=EL_total_MWh*electricity_cost
-        operational_cost_annual=((iron_ore_cost_tls+electricity_cost_tls+eaf_op_cost_tls+dri_op_cost_tls)*steel_prod_yr)/10**6 #million USD
+        operational_cost_annual=((pipe_storage_opex+compressor_opex+finishing_opex)+((iron_ore_cost_tls+electricity_cost_tls+eaf_op_cost_tls+dri_op_cost_tls)*steel_prod_yr))/10**6 #million USD
 
+        #print(operational_cost_annual)
+        #print(total_capital_cost)
 
         el_eaf_yr=el_eaf*steel_prod_yr
         el_elec_yr=el_elec*steel_prod_yr
@@ -687,6 +793,27 @@ def HDRI_EAF_Model(eta_el,h2_prod_yr,plant_life,tax_rate,interest_rate,electrici
         #print(total_emission_cost)
 
         #print('Steel Produced per year: ',steel_prod_yr)
+
+        save_outputs_dict = establish_save_output_dict()
+        save_outputs_dict['Net Present Value'].append(npv_hdri_eaf)
+        save_outputs_dict['Internal Rate of Return'].append(irr)
+        save_outputs_dict['H2 Production per year'].append(h2_prod_yr)
+        save_outputs_dict['Electrolyzer Electric Capacity'].append(el_capacity_mwel)
+        save_outputs_dict['Total Electricity MWH'].append(EL_total_MWh)
+        save_outputs_dict['Total Electricity Price'].append(electricity_cost_total)
+        save_outputs_dict['Plant Life'].append(plant_life)
+        save_outputs_dict['Lang Factor'].append(lang_factor)
+        save_outputs_dict['Emissions'].append(total_emission)
+        save_outputs_dict['Yearly Steel Production'].append(steel_prod_yr)
+        save_outputs_dict['Total Revenue'].append(total_revenue)
+        save_outputs_dict['Total Costs'].append()
+        save_outputs_dict['Total Income'].append()
+        save_outputs_dict['Levelized Cost of Steel'].append(lcos)
+        save_outputs_dict['Levelized Cost of Hydrogen'].append(lcoh)
+        save_outputs_dict['Levelized Cost of Oxygen'].append(lcoo)
+        save_outputs_dict['Hydrogen from Electrolyzer to Storage'].append(h2_storage_underground_pipe)
+
+
         return [npv_hdri,irr,cash_flow,lcos_annual,El_total_yr,lcoh,steel_prod_yr,lcoo]
 
     
@@ -706,8 +833,8 @@ def HDRI_EAF_Model(eta_el,h2_prod_yr,plant_life,tax_rate,interest_rate,electrici
 
     if elec_limit<el_demand:
         print('Electricity Demand Exceeds Production')
-
-        Electric_driven=True
+        print('Electric Demand per yr: ',el_demand)
+        Electric_driven=False
 
         if Electric_driven:
             print('Plant Confined by Electricity Production')
@@ -729,6 +856,7 @@ def HDRI_EAF_Model(eta_el,h2_prod_yr,plant_life,tax_rate,interest_rate,electrici
     lcoo=Outputs[7]
     el_demand=Outputs[4]
     steel_prod_yr=Outputs[6]
+    #print(h2_prod_yr)
     
 
     #save_output_dict=establish_save_output_dict()
@@ -741,14 +869,13 @@ def HDRI_EAF_Model(eta_el,h2_prod_yr,plant_life,tax_rate,interest_rate,electrici
 
     #print(electricity_cost)
 
-
-
+    
     
     return(h12_h2o,lcoh,lcos,npv_hdri_eaf,el_demand,steel_prod_yr,lcoo)
 
 
 
-#HDRI_EAF_Model(.6,200000000,20,.25,.10,56.12,90,30,700,40,50,.6,.413,1955356891)
+#HDRI_EAF_Model(.6,200000000,20,.25,.10,56.12,90,30,700,40,50,.3,.413,1955356891)
 
 plant_life=20 #years
 tax_rate=0.25 #percent
