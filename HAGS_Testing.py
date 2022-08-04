@@ -189,7 +189,7 @@ def HDRI_EAF_Model(site_name,scenario_name,eta_el,h2_prod_yr,plant_life,tax_rate
         H_t=((A*t)+(B*(t**2)/2)+(C*(t**3)/3)+(D*(t**4)/4)-(E/t)+(F-H))/mol_weight_cao
         return H_t
 
-    h2_storage_underground_pipe=False
+    h2_storage_underground_pipe=True
     h2_to_storage=0
     el_comp=0
     pipe_storage_capex=0
@@ -481,18 +481,27 @@ def HDRI_EAF_Model(site_name,scenario_name,eta_el,h2_prod_yr,plant_life,tax_rate
 
     #######################CHECKS##########################
 
-    #print("Raw Iron Ore input in (Kg/tls): ",np.around(m1,2))
-    #print("Metallic Stream at SF Outlet in (kg/tls): ",np.around(m2_fe,2))
-    #print("Molten Metal at EAF Outlet with no reduction in EAF (kg/tls): ",np.around(m3,2))
-    #print("Hydrogen at SF inlet :",m4)
-    #print("SF Exhaust Stream :",m5)
+    #print("Raw Iron Ore input in (Kg/tls) M1: ",np.around(m1,2))
+    #print("Metallic Stream at SF Outlet in (kg/tls) M2: ",np.around(m2_fe,2))
+    #print("Molten Metal at EAF Outlet with no reduction in EAF (kg/tls) M3: ",np.around(m3,2))
+    #print("Hydrogen at SF inlet M4:",m4)
+    #print("SF Exhaust Stream M5:",m5)
     #print("Reaction Enthalpy of liquid steel :",h_reaction_total_kwh)
     #print("Metallic stream at SF outlet :",h2_kwh)
     #print("Electricity of Heater needed in kwh :", el_heater)
     #print('Mass H2O leaving DRI in exhaust in (Kg/tls): ',np.around(m12_h20,3))
     #print('Extra Molten Metal through reduction in EAF (Kg/tls): ',np.around(m2_feo_reduced,2))
     #print('Actual tonnes liquid steel with reduction in EAF: ',np.around(m3_actual/1000,2))
-    
+    #print(h_reaction_total_kwh)
+    #print('h2',h2_kwh)
+    #print('h4',h4_kwh)
+    #print('h5',h5_kwh)
+    #print('h7',h7/3600)
+    #print('h10',h10_kwh)
+    #print('h11',h11/3600)
+    #print('h11_2',h11_heat_in_kwh)
+    #print('h12',h12_kwh)
+    #print('h2O',m5_h20)
     def electrolyzer_npv(eta_el,tax_rate,interest_rate,electricity_cost,iron_ore_cost,emission_cost,carbon_steel_price,O2_price,el_spec,h2_investment_2020,emission_factor):
         save_outputs_dict = establish_save_output_dict()
         ## Electrolyzer : Mass and Energy flow
@@ -692,6 +701,7 @@ def HDRI_EAF_Model(site_name,scenario_name,eta_el,h2_prod_yr,plant_life,tax_rate
         O2_produced_tls=m4*8 ##8 because of 2:1 mol ratio and 2:16 molecular weight ratio  kg
         total_O2_produced=(O2_produced_tls*steel_prod_yr)/1000 #tonnes
         
+
         O2_revenue=(total_O2_produced*O2_price*perc_O2_sold) #USD
         total_revenue=((carbon_steel_price*steel_prod_yr)+O2_revenue)/10**6 #Million USD
 
@@ -794,6 +804,11 @@ def HDRI_EAF_Model(site_name,scenario_name,eta_el,h2_prod_yr,plant_life,tax_rate
         #print('Total EAF cost in Million USD over plant life: ',np.around(eaf_total_cost,0))
         #print('Electrical Cost to produce one tonne of Steel (USD): ',electricity_cost_tls)
         #print('Electrical Cost ($/Mwh): ',electricity_cost)
+        #print(electrolyer_cost)
+        #feedstock_cost=(el_elec*steel_prod_yr*(electricity_cost/1000))/h2_per_year
+        #print(feedstock_cost)
+        #maintenance_cost_elec=(maintenance_cost_percent*annual_cost_capital_elec)/h2_per_year
+        #print(maintenance_cost_elec)
 
         #print('Yearly EAF electricity required (Kw): ',el_eaf_yr)
         #print('Yearly Electrolyzer electricity required (kw): ',el_elec_yr)
@@ -888,9 +903,82 @@ def HDRI_EAF_Model(site_name,scenario_name,eta_el,h2_prod_yr,plant_life,tax_rate
     return(m12_h20,out_dict)
 
 
+def ammonia_production(elec_spec,h2_prod_yr,h2_investment_2020,electricity_cost):
+    ##Seawater desal for h20
+    ##hydrogen production, Electrolyzer model
+    ##nitrogen separation
+    ##ammonia synthesis (Haber Bosch,electrochemical)
+    #Ammonia storage
+    
+    mol_weight_fe=      55.845  #grams/mol
+    mol_weight_fe203=   159.69  #grams/mol
+    mol_weight_sio2=    60.084  #grams/mol
+    mol_weight_al2o3=   101.961 #grams/mol
+    mol_weight_feo=     71.84   #grams/mol
+    mol_weight_H2=      2.01588 #grams/mol
+    mol_weight_H2O=     18.0153 #grams/mol
+    mol_weight_cao=     56.08   #grams/mol
+    mol_weight_mgo=     40.30   #grams/mol
+    mol_weight_C=       12.011  #grams/mol
+    mol_weight_NH3=     17.031  #grams/mol
+    mol_weight_N=       14.0067 #grams/mol
+    mol_weight_N2=      28.014  #grams/mol
 
-#HDRI_EAF_Model(.6,200000000,20,.25,.10,56.12,90,30,700,40,50,.3,.413,111955356891,.6)
+    mass_NH3=1000   #kg or one tonne
+    mol_ratio_N2_NH3=1/2
+    mol_ratio_H2_NH3=3/2
+    mass_N2=mass_NH3*mol_ratio_N2_NH3*(mol_weight_N2/mol_weight_NH3)    #kg per tonne NH3
+    mass_h2=mass_NH3*mol_ratio_H2_NH3*(mol_weight_H2/mol_weight_NH3)    #kg per tonne NH3
+    print('Mass of N2 needed for 1 tonne NH3: ',mass_N2)
+    print('Mass of H2 needed for 1 tonne H2: ',mass_h2)
+    #lambda_h2=1.2
+    #mass_h2_actual=mass_h2*lambda_h2
 
+    water_spec=11   #11 kg of water is required for 1 kg h2 #1kg h2o = 1 liter h2o
+
+    el_elec=(mass_h2*elec_spec)        #Electrolyzer Electricity
+    water_per_tonne=water_spec*mass_h2
+
+    operating_hours=365*24*.95          #hours
+    h2_per_hour=h2_prod_yr/operating_hours
+    Ammonia_per_hr=h2_per_hour/mass_h2   
+    Ammonia_per_yr=Ammonia_per_hr*operating_hours 
+    water_total=water_per_tonne*Ammonia_per_yr
+    print('Hydrogen produced per hour in kg: ',h2_per_hour)
+    print('Ammonia produced per hour in tonnes: ',Ammonia_per_hr)
+    print('Hydrogen produced in Kg: ',h2_prod_yr)
+    print('Ammonia produced in tonnes: ',Ammonia_per_yr)
+    print('Water Demand per year in kg: ',water_total)
+
+    #electrolyzer Equations
+    h2_per_second_kg=h2_per_hour/3600
+    lhv_h2=120.1
+    h2_capacity_MW=h2_per_second_kg*lhv_h2
+    electrolyzer_efficiency=0.74
+    el_capacity_mwel=h2_capacity_MW/electrolyzer_efficiency
+    stack_lifetime=90000 #hours
+    stack_replacement_year=stack_lifetime/operating_hours
+    electrolyzer_cost=h2_investment_2020*h2_capacity_MW
+
+    #Gas Separator
+
+
+    #Ammonia synthesis
+
+
+    #ammonia storage
+
+    
+    
+
+
+
+
+
+
+    return
+#HDRI_EAF_Model(0,0,.6,200000000,20,.25,.10,56.12,90,30,700,40,55.5,.3,.413,111955356891,.6)
+#ammonia_production(0,177.548,300,56.12)
 plant_life=20           #years
 tax_rate=0.25           #percent
 interest_rate=0.10      #percent
