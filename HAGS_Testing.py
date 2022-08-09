@@ -43,6 +43,7 @@ def establish_save_output_dict():
     save_outputs_dict['Levelized Cost of Steel $/tls'] = list()
     save_outputs_dict['Electrical Demand of Plant KW'] = list()
     save_outputs_dict['Electrolyzer cost KW'] = list()
+    save_outputs_dict['Electrolyzer Spec kwh/kgh2'] = list()
     
 
     return save_outputs_dict
@@ -189,7 +190,7 @@ def HDRI_EAF_Model(site_name,scenario_name,eta_el,h2_prod_yr,plant_life,tax_rate
         H_t=((A*t)+(B*(t**2)/2)+(C*(t**3)/3)+(D*(t**4)/4)-(E/t)+(F-H))/mol_weight_cao
         return H_t
 
-    h2_storage_underground_pipe=True
+    h2_storage_underground_pipe=False
     h2_to_storage=0
     el_comp=0
     pipe_storage_capex=0
@@ -570,8 +571,8 @@ def HDRI_EAF_Model(site_name,scenario_name,eta_el,h2_prod_yr,plant_life,tax_rate
         h2_per_second_kg=(h2_per_hour_kg)/3600
         lhv_h2=120.1                                #Mj/kg low heating value
         h2_capacity_MW=h2_per_second_kg*lhv_h2      #MW h2 energy
-        electrolyzer_efficiency=0.74                #MW h2 energy from MW electrical ##Based off Electrolyzer spec
-        el_capacity_mwel=h2_capacity_MW/electrolyzer_efficiency #MW electrical energy
+        #electrolyzer_efficiency=0.65                #MW h2 energy from MW electrical ##Based off Electrolyzer spec
+        #el_capacity_mwel=h2_capacity_MW/electrolyzer_efficiency #MW electrical energy
         h2_per_year=h2_per_hour_kg*operating_hours #check
         
         
@@ -844,7 +845,7 @@ def HDRI_EAF_Model(site_name,scenario_name,eta_el,h2_prod_yr,plant_life,tax_rate
         save_outputs_dict['Net Present Value'].append(npv_hdri)
         save_outputs_dict['Internal Rate of Return'].append(irr)
         save_outputs_dict['H2 Production per year kg'].append(h2_prod_yr)
-        save_outputs_dict['Electrolyzer Electric Capacity'].append(el_capacity_mwel)
+        save_outputs_dict['Electrolyzer Electric Capacity'].append(h2_capacity_MW)
         save_outputs_dict['Total Electricity MWH'].append(EL_total_MWh)
         save_outputs_dict['Total Electricity Price $'].append(electricity_cost_total)
         save_outputs_dict['Electricity Price $/mwh'].append(electricity_cost)
@@ -859,6 +860,7 @@ def HDRI_EAF_Model(site_name,scenario_name,eta_el,h2_prod_yr,plant_life,tax_rate
         save_outputs_dict['Hydrogen from Electrolyzer to Storage kg'].append(h2_to_storage)
         save_outputs_dict['Electrical Demand of Plant KW'].append(El_total_yr_KW)
         save_outputs_dict['Electrolyzer cost KW'].append(h2_investment_2020)
+        save_outputs_dict['Electrolyzer Spec kwh/kgh2'].append(el_spec)
         
 
         return [npv_hdri,irr,cash_flow,lcos_annual,El_total_yr_KW,lcoh,steel_prod_yr,lcoo,save_outputs_dict]
