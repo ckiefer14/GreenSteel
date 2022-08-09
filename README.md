@@ -10,5 +10,6 @@ https://github.com/abhinavbhaskar/HDRI-EAF-Technoeconomic-model/tree/V1.0
 
 HAGS_Testing is raw code to pull many outputs
 
-HAGS_Cleaned is a "cleaned" code that removes unnecessary calculations for the purpose to be inputted into HOPP
+HAGS_Cleaned is a "cleaned" code that removes unnecessary calculations for the purpose to be inputted into HOPP #REMOVED
+
 
