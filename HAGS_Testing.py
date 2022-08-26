@@ -49,7 +49,7 @@ def establish_save_output_dict():
     return save_outputs_dict
 
 ##Code is for Hydrogen Driven Plant##
-def HDRI_EAF_Model(site_name,scenario_name,eta_el,h2_prod_yr,plant_life,tax_rate,interest_rate,electricity_cost,iron_ore_cost,emission_cost,carbon_steel_price,O2_price,el_spec,h2_investment_2020,emission_factor,elec_limit,perc_O2_sold):
+def HDRI_EAF_Model(site_name,scenario_name,eta_el,h2_prod_yr,plant_life,tax_rate,interest_rate,electricity_cost,iron_ore_cost,emission_cost,carbon_steel_price,O2_price,el_spec,h2_investment_2020,emission_factor,elec_limit,perc_O2_sold,true_electrolyzer_size):
     #molecular weights of the materials fed into DRI from national institute of standards and technology
     #Iron and impurities
     mol_weight_fe=      55.845  #grams/mol
@@ -503,7 +503,7 @@ def HDRI_EAF_Model(site_name,scenario_name,eta_el,h2_prod_yr,plant_life,tax_rate
     #print('h11_2',h11_heat_in_kwh)
     #print('h12',h12_kwh)
     #print('h2O',m5_h20)
-    def electrolyzer_npv(eta_el,tax_rate,interest_rate,electricity_cost,iron_ore_cost,emission_cost,carbon_steel_price,O2_price,el_spec,h2_investment_2020,emission_factor):
+    def electrolyzer_npv(eta_el,tax_rate,interest_rate,electricity_cost,iron_ore_cost,emission_cost,carbon_steel_price,O2_price,el_spec,h2_investment_2020,emission_factor,true_electrolyzer_size):
         save_outputs_dict = establish_save_output_dict()
         ## Electrolyzer : Mass and Energy flow
         #elec_spec=50 #kwh/kgh2  #specification of electrolyzer
@@ -572,7 +572,7 @@ def HDRI_EAF_Model(site_name,scenario_name,eta_el,h2_prod_yr,plant_life,tax_rate
         lhv_h2=120.1                                #Mj/kg low heating value
         h2_capacity_MW=h2_per_second_kg*lhv_h2      #MW h2 energy
         #electrolyzer_efficiency=0.65                #MW h2 energy from MW electrical ##Based off Electrolyzer spec
-        #el_capacity_mwel=h2_capacity_MW/electrolyzer_efficiency #MW electrical energy
+        el_capacity_mwel=true_electrolyzer_size     #MW electrical energy
         h2_per_year=h2_per_hour_kg*operating_hours #check
         
         
@@ -592,7 +592,7 @@ def HDRI_EAF_Model(site_name,scenario_name,eta_el,h2_prod_yr,plant_life,tax_rate
 
         h2_investment_MW_h2=(h2_investment_2020) #.300 mill USD per Mw Electrolyzer
 
-        electrolyer_cost=h2_investment_MW_h2*h2_capacity_MW #total electrolyzer cost Mill USD
+        electrolyer_cost=h2_investment_MW_h2*el_capacity_mwel #total electrolyzer cost Mill USD
         
         # only the stack is replaced, which is 60% of the total el capital cost 
         # it is assumed that by the time stacks are replaced the cost of electrolyzers would 
@@ -845,7 +845,7 @@ def HDRI_EAF_Model(site_name,scenario_name,eta_el,h2_prod_yr,plant_life,tax_rate
         save_outputs_dict['Net Present Value'].append(npv_hdri)
         save_outputs_dict['Internal Rate of Return'].append(irr)
         save_outputs_dict['H2 Production per year kg'].append(h2_prod_yr)
-        save_outputs_dict['Electrolyzer Electric Capacity'].append(h2_capacity_MW)
+        save_outputs_dict['Electrolyzer Electric Capacity'].append(el_capacity_mwel)
         save_outputs_dict['Total Electricity MWH'].append(EL_total_MWh)
         save_outputs_dict['Total Electricity Price $'].append(electricity_cost_total)
         save_outputs_dict['Electricity Price $/mwh'].append(electricity_cost)
@@ -872,7 +872,7 @@ def HDRI_EAF_Model(site_name,scenario_name,eta_el,h2_prod_yr,plant_life,tax_rate
 
     baseline=[eta_el,tax_rate,interest_rate, electricity_cost,iron_ore_cost,
                 emission_cost,carbon_steel_price,O2_price,el_spec,
-                            h2_investment_2020,emission_factor]
+                            h2_investment_2020,emission_factor,true_electrolyzer_size]
     
     Outputs=electrolyzer_npv(*baseline)
     
@@ -892,7 +892,7 @@ def HDRI_EAF_Model(site_name,scenario_name,eta_el,h2_prod_yr,plant_life,tax_rate
             steel_prod_yr=scale_factor*steel_prod_yr
             h2_prod_yr=scale_factor*h2_prod_yr
             
-            Outputs=electrolyzer_npv(eta_el,tax_rate,interest_rate,electricity_cost,iron_ore_cost,emission_cost,carbon_steel_price,O2_price,el_spec,h2_investment_2020,emission_factor)
+            Outputs=electrolyzer_npv(eta_el,tax_rate,interest_rate,electricity_cost,iron_ore_cost,emission_cost,carbon_steel_price,O2_price,el_spec,h2_investment_2020,emission_factor,true_electrolyzer_size)
             print('Scale Factor: ',scale_factor)
             #print('Steel Produced per year Scaled: ',steel_prod_yr)
             
@@ -979,7 +979,7 @@ def ammonia_production(elec_spec,h2_prod_yr,h2_investment_2020,electricity_cost)
 
 
     return
-#HDRI_EAF_Model(0,0,.6,200000000,20,.25,.10,56.12,90,30,700,40,55.5,.3,.413,111955356891,.6)
+#HDRI_EAF_Model(0,0,.6,200000000,20,.25,.10,56.12,90,30,700,40,55.5,.3,.413,111955356891,.6,90)
 #ammonia_production(0,177.548,300,56.12)
 plant_life=20           #years
 tax_rate=0.25           #percent
