@@ -2,8 +2,24 @@
 
 ### Hydrogen enthalpy coefficients
 # The value of enthalpy returned is the specific enthalpy in kj/g
+'''
+Author: Charlie Kiefer
+Date: 8/14/23
 
-def H2_enthalpy_1(T):
+These functions calculate enthalpies of elements relating to green steel
+
+Sources:
+Chase, M.W., Jr. 1998. "NIST-JANAF Themochemical Tables, Fourth Edition." J. Phys. Chem. Ref. Data, Monograph 9 1-1951. doi:https://doi.org/10.18434/T4D303.
+    Thermochemistry tab of each element
+
+Inputs:
+    T: Temperature of the element (K)
+
+Outputs:
+    H_t: Enthalpy of element at given temp (kj/g)
+'''
+
+def h2_enthalpy_1(T):
     mol_weight_H2=2.01588 #in grams# T1 and T2 should be in the range of 298-1000 K <br>
     t=T/1000 
     A=33.066718 
@@ -16,7 +32,7 @@ def H2_enthalpy_1(T):
     H=0  
     H_t=A*t +(B*t*t)/2 +(C*t*t*t)/3 + (D*t*t*t*t)/4-(E/t)+F-H 
     return H_t 
-def H2_enthalpy_2(T):
+def h2_enthalpy_2(T):
     mol_weight_H2=2.01588#T in range 1000-2500 K 
     t=T/1000 
     A=18.563083 
@@ -31,7 +47,7 @@ def H2_enthalpy_2(T):
     return H_t 
 ### Water enthalpy coefficients
 
-def H2O_enthalpy(T):
+def h2o_enthalpy(T):
     mol_weight_H2O=18.0153 
     t=T/1000 
     A=30.09200  
@@ -45,7 +61,7 @@ def H2O_enthalpy(T):
     H_t=(A*t +(B*t*t)/2 +(C*t*t*t)/3 + (D*t*t*t*t)/4-(E/t)+F-H)/mol_weight_H2O 
     return H_t 
 
-def fe_enthalpy(T):#298-1809 K
+def fe_enthalpy_1(T):#298-1809 K
     mol_weight_fe=55.845 #in grams
     t=T/1000
     A=23.97449
@@ -58,7 +74,7 @@ def fe_enthalpy(T):#298-1809 K
     H=7.788015    
     H_t=(A*t +(B*t*t)/2 +(C*t*t*t)/3 + (D*t*t*t*t)/4-(E/t)+F-H)/mol_weight_fe
     return H_t
-def fe_enthalpy_2(T):#298-1809 K
+def fe_enthalpy_2(T):#1809 - 3133K
     mol_weight_fe=55.845 #in grams
     t=T/1000
     A=46.02400
@@ -84,7 +100,7 @@ def feo_enthalpy(T):
     H=-272.0441
     H_t=(A*t +(B*t*t)/2 +(C*t*t*t)/3 + (D*t*t*t*t)/4-(E/t)+F-H)/mol_weight_feo
     return H_t
-def Al2O3_enthalpy(T):
+def al2o3_enthalpy(T):
     mol_weight_al2o3=101.9613 #in grams    
     t=T/1000
     A=106.0880
@@ -136,7 +152,7 @@ def cao_enthalpy(T):
     H=-635.0894
     H_t=(A*t +(B*t*t)/2 +(C*t*t*t)/3 + (D*t*t*t*t)/4-(E/t)+F-H)/mol_weight_cao
     return H_t
-def CH4_enthalpy_1(T):# T in the range 298-1000 K
+def ch4_enthalpy_1(T):# T in the range 298-1000 K
     mol_weight_CH4=16.04 # in grams
     t=T/1000
     A=-0.703029
@@ -149,7 +165,7 @@ def CH4_enthalpy_1(T):# T in the range 298-1000 K
     H=-74.87310
     H_t=(A*t +(B*t**2)/2 +(C*t**3)/3 + (D*t**4)/4-(E/t)+F-H)/mol_weight_CH4
     return H_t
-def CH4_enthalpy_2(T):# T in range 1300-6000 K
+def ch4_enthalpy_2(T):# T in range 1300-6000 K
     mol_weight_CH4=16.04 # in grams
     t=T/1000
     A=85.81217
@@ -162,7 +178,7 @@ def CH4_enthalpy_2(T):# T in range 1300-6000 K
     H=-74.87310
     H_t=(A*t +(B*t**2)/2 +(C*t**3)/3 + (D*t**4)/4-(E/t)+F-H)/mol_weight_CH4
     return H_t
-def C_enthalpy(T):# T in the range 298-1000 K
+def c_enthalpy(T):# T in the range 298-1000 K
     mol_weight_C=12.017 # in grams
     t=T/1000
     A=21.17510
