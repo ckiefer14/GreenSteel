@@ -22,6 +22,7 @@ def establish_save_output_dict():
         save_outputs_dict['Electricity Needed for Heater (kWh per desired output)'] = list()
         save_outputs_dict['Total Labor Cost (Mil USD per year)'] = list()
 
+
         return save_outputs_dict
 
 class hdri_model:
@@ -137,7 +138,7 @@ class hdri_model:
         an HDRI oxidation system of iron ore in the greensteel process for output of tonne liquid steel
         
         Args:
-        steel_output_desired (kg) or (kg/hr): (float) resulting desired steel output
+        steel_out_desired (kg) or (kg/hr): (float) resulting desired steel output
 
         Sources:
         Model derived from: Bhaskar, Abhinav, Rockey Abhishek, Mohsen Assadi, and Homan Nikpey Somehesaraei. 2022. "Decarbonizing primary steel production : Techno-economic assessment of a hydrogen based green steel production plant in Norway." Journal of Cleaner Production 350: 131339. doi: https://doi.org/10.1016/j.jclepro.2022.131339.
@@ -217,7 +218,8 @@ class hdri_model:
 
 
         '''
-        from enthalpy_functions import h2_enthalpy_1, h2_enthalpy_2 ,h2o_enthalpy, sio2_enthalpy, al2o3_enthalpy, feo_enthalpy ,fe_enthalpy_1
+        from hopp.simulation.technologies.steel.enthalpy_functions import h2_enthalpy, h2_enthalpy, h2o_enthalpy, sio2_enthalpy, al2o3_enthalpy, feo_enthalpy ,fe_enthalpy
+        
         hdri_model.mass_model(self,steel_out_desired)
 
         mass_h2_input = self.mass_h2_input
@@ -225,13 +227,13 @@ class hdri_model:
         mass_h2_output = self.mass_h2_output
         
 
-        h4 = (h2_enthalpy_2(self.h2_temp_in)*mass_h2_input*1000) #kJ
+        h4 = (h2_enthalpy(self.h2_temp_in)*mass_h2_input*1000) #kJ
         #h4_kwh = h4/3600  #3600 kJ in 1 kWh
 
         self.enthalpy_h2_input = h4 #kJ
 
         h5_h20 = (mass_h2o_output*h2o_enthalpy(self.h2_temp_out)*1000)   #kJ Enthalpyof h20 in exhaust
-        h5_h2 = (mass_h2_output*h2_enthalpy_1(self.h2_temp_out)*1000)    #kJ Enthalpy of H2 in exhaust
+        h5_h2 = (mass_h2_output*h2_enthalpy(self.h2_temp_out)*1000)    #kJ Enthalpy of H2 in exhaust
         
         h5 = (h5_h20 + h5_h2)                       #kJ Enthalpy of exhaust
         #h5_kwh = h5/3600                          #Conversion Kj to Kwh
@@ -243,7 +245,7 @@ class hdri_model:
         #h_reaction_total_kwh=h_reaction_total/3600  #kJ to kwh conversion
 
 
-        h2 = 1000*((fe_enthalpy_1(self.stream_temp_out)*self.mass_pure_fe_output) 
+        h2 = 1000*((fe_enthalpy(self.stream_temp_out)*self.mass_pure_fe_output) 
                 + (feo_enthalpy(self.stream_temp_out)*self.mass_iron_ore_output)
                 + (sio2_enthalpy(self.stream_temp_out)*self.mass_sio2)
                 + (al2o3_enthalpy(self.stream_temp_out)*self.mass_al2o3))  #Enthalpy of metallic stream exiting DRI/exiting EAF in kj/kg
@@ -273,6 +275,7 @@ class hdri_model:
         Model derived from: Bhaskar, Abhinav, Rockey Abhishek, Mohsen Assadi, and Homan Nikpey Somehesaraei. 2022. "Decarbonizing primary steel production : Techno-economic assessment of a hydrogen based green steel production plant in Norway." Journal of Cleaner Production 350: 131339. doi: https://doi.org/10.1016/j.jclepro.2022.131339.
 
         '''
+        hdri_model.mass_model(self,steel_prod_yr)
 
         self.hdri_total_capital_cost = ((self.hdri_cost_per_ton_yr*steel_prod_yr)/10**6)*self.lang_factor #Mil USD
 
@@ -282,7 +285,9 @@ class hdri_model:
 
         self.depreciation_cost = self.hdri_total_capital_cost/self.plant_life #Mil USD per year
 
-        self.iron_ore_total_cost_yr = self.iron_ore_cost_tls*steel_prod_yr/(10**6) #USD per ton
+        total_iron_ore = self.mass_iron_ore_input #tonne FeO
+
+        self.iron_ore_total_cost_yr = self.iron_ore_cost_tls * total_iron_ore/10**6 #USD per ton
 
         self.total_labor_cost_yr = self.labor_cost_tls*steel_prod_yr/10**6
 
@@ -311,7 +316,8 @@ class hdri_model:
         Model derived from: Bhaskar, Abhinav, Rockey Abhishek, Mohsen Assadi, and Homan Nikpey Somehesaraei. 2022. "Decarbonizing primary steel production : Techno-economic assessment of a hydrogen based green steel production plant in Norway." Journal of Cleaner Production 350: 131339. doi: https://doi.org/10.1016/j.jclepro.2022.131339.
 
         '''
-        from enthalpy_functions import h2o_enthalpy, h2_enthalpy_1
+        from hopp.simulation.technologies.steel.enthalpy_functions import h2o_enthalpy, h2_enthalpy
+
         hdri_model.mass_model(self,steel_out_desired)
         hdri_model.energy_model(self,steel_out_desired)
 
@@ -322,11 +328,11 @@ class hdri_model:
         #m13 = m12_h2o     #Mass h2o from condenser to electrolyzer
 
         h12_h2o = (m12_h2o*h2o_enthalpy(self.temp_stream_exit_recup)*1000)   #exit h20 in recuperator to condenser stream
-        h12_h2 = (m12_h2*h2_enthalpy_1(self.temp_stream_exit_recup)*1000)    #exit h2 in recuperator to condenser stream
+        h12_h2 = (m12_h2*h2_enthalpy(self.temp_stream_exit_recup)*1000)    #exit h2 in recuperator to condenser stream
         h12 = (h12_h2 + h12_h2o) #total enthalpy in exit of recuperator to condensor
         h12_kwh = h12/3600 #conversion kj to kwh
 
-        h10 = (h2_enthalpy_1(self.h2_temp_elec)*m10*1000)  #electrolyzer to recuperator
+        h10 = (h2_enthalpy(self.h2_temp_elec)*m10*1000)  #electrolyzer to recuperator
         h10_kwh = (h10/3600) #conversion kj to kwh
 
         h11 = ((self.enthalpy_out_stream - h12) + h10)/3600
@@ -347,14 +353,15 @@ class hdri_model:
         Model derived from: Bhaskar, Abhinav, Rockey Abhishek, Mohsen Assadi, and Homan Nikpey Somehesaraei. 2022. "Decarbonizing primary steel production : Techno-economic assessment of a hydrogen based green steel production plant in Norway." Journal of Cleaner Production 350: 131339. doi: https://doi.org/10.1016/j.jclepro.2022.131339.
 
         '''
-        from enthalpy_functions import h2_enthalpy_1
+        from hopp.simulation.technologies.steel.enthalpy_functions import h2_enthalpy
+        
         hdri_model.mass_model(self,steel_out_desired)
         hdri_model.energy_model(self,steel_out_desired)
 
         T11_heat_in = self.temp_input_heater  #Assumes 30 degree heat loss from recuperator to heater
         m11_heat_in = self.mass_h2_input #mass of hydrogen into heater = mass hydrogen into recuperator
         
-        h11_heat_in = (h2_enthalpy_1(T11_heat_in)*m11_heat_in*1000)  #enthalpy of stream into heater
+        h11_heat_in = (h2_enthalpy(T11_heat_in)*m11_heat_in*1000)  #enthalpy of stream into heater
         #h11_heat_in_kwh = (h11_heat_in/3600)      #kj to kwh conversion
         
         #eta_rec = ((h11_heat_in - h10)/(h5-h12))    #recuperator efficiency
@@ -363,11 +370,26 @@ class hdri_model:
         eta_el_heater = self.eta_el_heater        #Efficiency of heater
         el_heater = (q_heater/eta_el_heater)  #electricity need at heater
 
-        self.el_needed_heater = el_heater #kWh per tls
+        self.el_needed_heater = el_heater #kWh or kw
 
         save_outputs_dict = establish_save_output_dict()
 
         save_outputs_dict['Electricity Needed for Heater (kWh per desired output)'].append(self.el_needed_heater)
 
         return(save_outputs_dict,self.el_needed_heater)
+
+if __name__ == '__main__':
+
+    model_instance = hdri_model()
+
+    steel_output_desired = 1000 #(kg or kg/hr)
+
+    mass_outputs = model_instance.mass_model(steel_output_desired)
+    energy_outputs = model_instance.energy_model(steel_output_desired)
+    recuperator_outputs = model_instance.recuperator_mass_energy_model(steel_output_desired)
+    heater_outputs = model_instance.heater_mass_energy_model(steel_output_desired)
+
+    steel_output_desired_yr = 2000000 #(ton/yr)
+
+    financial_outputs = model_instance.financial_model(steel_output_desired_yr)
 

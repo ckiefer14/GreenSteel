@@ -109,7 +109,7 @@ class eaf_model():
         self.labor_cost_tls = 20 #(USD/ton/year) [1] $40 is flat rate for hdri and eaf together
         self.eaf_total_capital_cost = None #(Million USD)
         self.eaf_cost_per_ton_yr = 140 #(USD/tls/yr)
-        self.eaf_op_cost_tls = 32 #(tls/yr of dri) [1]
+        self.eaf_op_cost_tls = 32 #(USD/tls/yr of eaf) [1]
         self.eaf_operational_cost_yr = None #(Million USD)
         self.maintenance_cost_percent = .015 #(% of capital cost)[1]
         self.eaf_maintenance_cost_yr = None #(Million USD)
@@ -117,7 +117,7 @@ class eaf_model():
         self.total_labor_cost_yr = None #(Million USD)
         self.emission_cost = 30 #(USD/ton CO2) [1]
         self.emission_factor = .413 #(ton CO2/kwh) [1]
-        self.carbon_cost_tls = 120 #(USD/ton coal) [1]
+        self.carbon_cost_tls = 200 #(USD/ton coal) [1]
         self.coal_total_cost_yr = None #(Mil USD/year)
         self.lime_cost = 112 #(USD/ton lime) [1]
         self.lime_cost_total = None #(USD/year)
@@ -134,7 +134,7 @@ class eaf_model():
         Sources:
         Model derived from: Bhaskar, Abhinav, Rockey Abhishek, Mohsen Assadi, and Homan Nikpey Somehesaraei. 2022. "Decarbonizing primary steel production : Techno-economic assessment of a hydrogen based green steel production plant in Norway." Journal of Cleaner Production 350: 131339. doi: https://doi.org/10.1016/j.jclepro.2022.131339.
         '''
-        from hdri_model import hdri_model
+        from hopp.simulation.technologies.steel.hdri_model import hdri_model
 
         model_instance = hdri_model()
         hdri_mass_model_outputs = model_instance.mass_model(steel_out_desired)
@@ -176,8 +176,8 @@ class eaf_model():
         Model derived from: Bhaskar, Abhinav, Rockey Abhishek, Mohsen Assadi, and Homan Nikpey Somehesaraei. 2022. "Decarbonizing primary steel production : Techno-economic assessment of a hydrogen based green steel production plant in Norway." Journal of Cleaner Production 350: 131339. doi: https://doi.org/10.1016/j.jclepro.2022.131339.
 
         '''
-        from hdri_model import hdri_model
-        from enthalpy_functions import fe_enthalpy_1,fe_enthalpy_2
+        from hopp.simulation.technologies.steel.hdri_model import hdri_model
+        from hopp.simulation.technologies.steel.enthalpy_functions import fe_enthalpy, fe_enthalpy
 
         model_instance = hdri_model()
 
@@ -186,8 +186,8 @@ class eaf_model():
         m2_fe = hdri_mass_model_outputs[1]
      
         
-        hfe_T2 = fe_enthalpy_1(self.stream_temp_in)    #Enthalpy of DRI entering Eaf (kj/g)
-        hfe_T3 = fe_enthalpy_2(self.eaf_temp)    #Enthalpy steel exiting EAF (kj/g)
+        hfe_T2 = fe_enthalpy(self.stream_temp_in)    #Enthalpy of DRI entering Eaf (kj/g)
+        hfe_T3 = fe_enthalpy(self.eaf_temp)    #Enthalpy steel exiting EAF (kj/g)
         h3 = ((hfe_T3 - hfe_T2)*m2_fe*1000) + (m2_fe*self.hfe_melting)  #Total Enthalpy at output Kj
 
         h3_kwh = h3 / 3600 #(kwh)
@@ -214,20 +214,20 @@ class eaf_model():
         Model derived from: Bhaskar, Abhinav, Rockey Abhishek, Mohsen Assadi, and Homan Nikpey Somehesaraei. 2022. "Decarbonizing primary steel production : Techno-economic assessment of a hydrogen based green steel production plant in Norway." Journal of Cleaner Production 350: 131339. doi: https://doi.org/10.1016/j.jclepro.2022.131339.
 
         '''
-        from hdri_model import hdri_model
+        from hopp.simulation.technologies.steel.hdri_model import hdri_model
 
         eaf_model.energy_model(self,steel_out_desired)
         model_instance = hdri_model()
 
         el_heater = model_instance.heater_mass_energy_model(steel_out_desired)[1]
 
-        indirect_emissions = ((self.el_eaf + el_heater)*self.emission_factor) #tco2
+        indirect_emissions = ((self.el_eaf + el_heater)*self.emission_factor) #tco2 or tco2/hr
 
         direct_emissions = (self.eaf_co2 + self.cao_emission + self.co2_eaf_electrode 
-                            + self.pellet_production) #tco2/tls
+                            + self.pellet_production) #tco2/tls or tco2/hr/tls
         
-        indirect_emissions_total = indirect_emissions #tco2
-        direct_emissions_total = direct_emissions*steel_out_desired/1000 #tco2
+        indirect_emissions_total = indirect_emissions #tco2 or tco2/hr
+        direct_emissions_total = direct_emissions*steel_out_desired/1000 #tco2 tco2/hr
 
 
         self.indirect_emissions_total = indirect_emissions_total
@@ -265,9 +265,12 @@ class eaf_model():
 
         self.depreciation_cost = self.eaf_total_capital_cost/self.plant_life #Mil USD per year
 
-        self.coal_total_cost_yr = (self.carbon_cost_tls*self.mass_carbon_tls*steel_prod_yr/1000)/10**6 #(Mill USD per year)
+        total_coal = self.mass_carbon_tls * steel_prod_yr/1000 #tonne coal
+        total_lime = self.mass_lime_tls * steel_prod_yr/1000 # tonne lime
 
-        self.lime_cost_total = (self.lime_cost*self.mass_lime_tls*steel_prod_yr/1000)/10**6
+        self.coal_total_cost_yr = (self.carbon_cost_tls * total_coal)/10**6 #(Mill USD per year)
+
+        self.lime_cost_total = (self.lime_cost * total_lime)/10**6
 
         self.total_labor_cost_yr = self.labor_cost_tls*steel_prod_yr/10**6
 
@@ -293,4 +296,21 @@ class eaf_model():
         return (save_outputs_dict, self.eaf_total_capital_cost, self.eaf_operational_cost_yr, self.eaf_maintenance_cost_yr,
                 self.depreciation_cost, self.coal_total_cost_yr, self.total_labor_cost_yr, self.lime_cost_total,
                 self.total_emission_cost)
+
+
+
+if __name__ == '__main__':
+    model_instance = eaf_model()
+
+    steel_output_desired = 1000 #(kg or kg/hr)
+
+    mass_outputs = model_instance.mass_model(steel_output_desired)
+    energy_outputs = model_instance.energy_model(steel_output_desired)
+    emission_outputs = model_instance.emission_model(steel_output_desired)
+
+    steel_output_desired_yr = 2000000 #(ton/yr)
+
+    financial_outputs = model_instance.financial_model(steel_output_desired_yr)
+
+    
 
